@@ -7,6 +7,7 @@
  var Orchestrator        = express();
 
  
+ //var conn = new WebSocket('wss://192.168.219.107:22')
  /*
   * TODO: Create Option files
   */
@@ -38,7 +39,8 @@ setInterval(() => {
 
 // end of process
 const gracfulCleanJob = () => new Promise((resolve, reject) => {
-    setTimeout(() => {resolve()}, 1000);
+    setTimeout(() => {resolve()}, 100);
+    // TODO: Close code
 });
 
 // catch sigint(ctrl+c) signal
@@ -54,6 +56,11 @@ process.on('SIGINT', function() {
 // WebSocket Server
 // https://www.npmjs.com/package/ws
 
+
+// TODO: mgr
+const { Client }    = require('ssh2');
+const sshconn       = new Client()
+
 // TODO: MGR Class, client list
 async function startWSServer() {
     var WebSocketServer = require('ws').Server
@@ -62,11 +69,12 @@ async function startWSServer() {
 
     wss.on('connection', function(ws) {
         // TODO: accept processing code
-
         // TODO: recv (msg)
         ws.on('message', function(message) {
-            console.log('#INFO\treceived: %s', message); 
-            ws.send(message);
+            console.log('#INFO\tRaw Message: %s', message); 
+            //ws.send("echo server:" + message);
+            //retv = _parse(message)
+            ws.send(_parse(message))
         });
 
         // TODO: close
@@ -77,4 +85,59 @@ async function startWSServer() {
 
         ws.send('welcome');
     });
+}
+
+/*
+MSG FORMAT
+{
+    "cmd" : " KEYEX | CONN | SHELL "
+    "body" : {        
+        --- CONN
+        "ip" : "1.2.3.4",
+        "port" : "22",
+        "user" : "asd",
+        "password" : "qwe",
+        ...
+        --- SHELL
+        "exe" : "ls -al"
+    }
+}
+*/
+
+function _parse(raw) {
+    rawJson = JSON.parse(raw)
+    console.log('#INFO\tMSG:', rawJson['cmd'])
+
+    if ( rawJson['cmd'] == "CONN" ) {
+        // TODO: SSH CONNECT / Validate body
+        sshconn.connect(rawJson['body'])        
+        return _retv(true, "success")
+
+    } else if ( rawJson['cmd'] == "SHELL" ) {
+        // TODO: SEND SSH
+        console.log('#INFO\tBODY:', rawJson['body'])
+
+        sshconn.exec(rawJson['body'] , function(err, stream) {
+            if (err) throw err;
+            stream.on('close', function(code, signal) {
+              console.log('SSH Stream :: close :: code: ' + code + ', signal: ' + signal);
+            }).on('data', function(data) {
+              console.log('STDOUT: ' + data);
+            }).stderr.on('data', function(data) {
+              console.log('STDERR: ' + data);
+            });
+          });
+        
+        return _retv(true, rawJson['body'] + ":\texecuted")
+        
+    } else {
+        return _retv(false, rawJson['cmd'] + ":\tinvalid command")
+    }
+}
+
+function _retv(b, v) {
+    return JSON.stringify({
+        "result" : b,
+        "body" : v
+    })
 }
