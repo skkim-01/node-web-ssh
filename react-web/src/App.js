@@ -4,35 +4,37 @@ import './App.css';
 
 import { w3cwebsocket as W3CWebSocket } from "websocket";
 const client = new W3CWebSocket('ws://localhost:9998');
-client.onopen = () => {
-  console.log('WebSocket Client Connected');
-};
-client.onmessage = (message) => {
-  console.log(message.data);
-};
-client.onerror = () => {
-  console.log('Connection Error');
-};
-client.onclose = () => {
-  console.log('socket closed');
-}
 
 function App() {
+  const [textOutput, setTextOutput] = useState("");
   const [textValue, setTextValue] = useState("");
   const handleSetValue = (e) => {
-    //console.log(e.target.value);
     setTextValue(e.target.value);
   };
   const handleOnKeyPress = (e) => {
-    // e.preventDefault();
-    //console.log("keypress", e.target.value);
-    //setTextValue(e.target.value);
-
+    // TODO: CTRL+C
     if (e.key === 'Enter') {
-      console.log("enter is pressed", e.target.value);
       _sendSSH(textValue)
       setTextValue('')
-    }    
+    }
+  }
+  const handleSetOutput = (e) => {
+    setTextOutput(e.target.value)
+  }
+
+
+  client.onopen = () => {
+    console.log('WebSocket Client Connected');
+  };
+  client.onmessage = (message) => {
+    console.log(message.data);
+    setTextOutput(message.data)
+  };
+  client.onerror = () => {
+    console.log('Connection Error');
+  };
+  client.onclose = () => {
+    console.log('socket closed');
   }
 
   return (
@@ -48,7 +50,10 @@ function App() {
           onKeyPress={handleOnKeyPress}
         />
         <p> OUTPUT </p>
-        
+        <textarea
+          value={textOutput}
+          onChange={(e) => handleSetOutput(e)}
+        ></textarea>
       </header>
     </div>
   );
