@@ -74,7 +74,8 @@ async function startWSServer() {
             console.log('#INFO\tRaw Message: %s', message); 
             //ws.send("echo server:" + message);
             //retv = _parse(message)
-            ws.send(_parse(message))
+            //ws.send(_parse(message, ws))
+            _parse(message, ws)
         });
 
         // TODO: close
@@ -104,34 +105,31 @@ MSG FORMAT
 }
 */
 
-function _parse(raw) {
+function _parse(raw, ws) {
     rawJson = JSON.parse(raw)
-    console.log('#INFO\tMSG:', rawJson['cmd'])
 
+    // SSH connect
     if ( rawJson['cmd'] == "CONN" ) {
         // TODO: SSH CONNECT / Validate body
         sshconn.connect(rawJson['body'])        
-        return _retv(true, "success")
+        ws.send(_retv(true, "success"))
 
+    // Send Command
     } else if ( rawJson['cmd'] == "SHELL" ) {
-        // TODO: SEND SSH
-        console.log('#INFO\tBODY:', rawJson['body'])
+        // TODO: filter command: scp/vi
 
         sshconn.exec(rawJson['body'] , function(err, stream) {
             if (err) throw err;
-            stream.on('close', function(code, signal) {
-              console.log('SSH Stream :: close :: code: ' + code + ', signal: ' + signal);
+            stream.on('close', function(code, signal) {              
             }).on('data', function(data) {
-              console.log('STDOUT: ' + data);
+              ws.send(_retv(true, data.toString()))
             }).stderr.on('data', function(data) {
-              console.log('STDERR: ' + data);
+              ws.send(_retv(false, data.toString()))
             });
-          });
-        
-        return _retv(true, rawJson['body'] + ":\texecuted")
+        });
         
     } else {
-        return _retv(false, rawJson['cmd'] + ":\tinvalid command")
+        ws.send(_retv(false, rawJson['cmd'] + ":\tinvalid command"))        
     }
 }
 
