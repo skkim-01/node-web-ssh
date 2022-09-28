@@ -17,36 +17,36 @@ MSG FORMAT
 }
 */
 
-class MSGBuilder {
+class MSGHelper {
     static buildRequest( cmd, body ) {
-        return {
+        return JSON.stringify({
             cmd: cmd,
             body: body
-        }
+        })
     }
 
     static builSecureRequest( cmd, body, pubkey ) 
     {
-        return {
+        return JSON.stringify({
             cmd: cmd,
             body: KeyHelper.encryptBase64(pubkey, body)
-        }
+        })
     }
 
     static buildResponse( cmd, result, body ) {
-        return {
+        return JSON.stringify({
             cmd: cmd,
             result: result,
             body: body
-        }
+        })
     }
 
     static buildSecureResponse( cmd, result, body, pubkey ) {
-        return {
+        return JSON.stringify({
             cmd: cmd,
             result: result,
             body: KeyHelper.encryptBase64(pubkey, body)
-        }
+        })
     }
 
     static parseMessage( message ) {
@@ -55,7 +55,7 @@ class MSGBuilder {
 
     static parseSecureMessage( message, keypair ) {
         let jsonObject = JSON.parse(message)
-        jsonObject["data"] = keypair.decryptString(jsonObject["data"])
+        jsonObject["body"] = keypair.decryptString(jsonObject["body"])
         return jsonObject
     }
 }
