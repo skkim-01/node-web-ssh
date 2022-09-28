@@ -44,30 +44,6 @@ class Keypair {
         return this.curve.getPrivateKey('base64')
     }
 
-    encryptBuffer( pubKey, plainData ) {
-        var byteKey
-
-        if( typeof pubKey == "string" ) {
-            byteKey = conv.base642buf(pubKey)
-        }else {
-            byteKey = pubKey
-        }
-
-        return this._encryptData(byteKey, plainData)
-    }
-
-    encryptBase64( pubKey, plainData) {
-        var byteKey
-
-        if( typeof pubKey == "string" ) {
-            byteKey = conv.base642buf(pubKey)
-        }else {
-            byteKey = pubKey
-        }
-
-        return conv.buf2base64( this._encryptData(byteKey, plainData) )
-    }
-
     decryptBuffer( cipherData ) {
         var byteData
         if ( typeof cipherData == 'string' ) {
@@ -91,22 +67,6 @@ class Keypair {
     }
 
     // private functions
-
-    // encrypt with public key. returns buffer
-    _encryptData( pubKey, plainData ) {
-        const tmpKey = new Keypair()
-        const R = tmpKey.getPublicKeyBuffer()
-        const sharedSecret = tmpKey.curve.computeSecret(pubKey)
-        const sha256HashedSecret = crypto.createHash('sha256').update(Buffer.concat([sharedSecret], sharedSecret.length)).digest();
-        const encrypionKey = sha256HashedSecret.slice(0, sha256HashedSecret.length/2)
-        const macKey = sha256HashedSecret.slice(sha256HashedSecret.length/2, sha256HashedSecret.length)
-        let cipher = crypto.createCipheriv('aes-128-cbc', encrypionKey, _default_iv);
-        const lPart = cipher.update(plainData)
-        const rPart = cipher.final()
-        const cipherText = Buffer.concat([lPart, rPart])
-        const tag = crypto.createHmac('sha256', macKey).update(Buffer.concat([cipherText], cipherText.length)).digest()
-        return Buffer.concat([R, cipherText, tag]);
-    }
 
     // decrypt with this.private key. returns buffer
     _decryptData( cipherData ) {
@@ -139,4 +99,59 @@ class Keypair {
     }
 }
 
-module.exports = { Keypair }
+class KeyHelper {
+    static isValidPubKey( pubKey ) {
+        var byteKey
+
+        if( typeof pubKey == "string" ) {
+            byteKey = conv.base642buf(pubKey)
+        }else {
+            byteKey = pubKey
+        }
+
+        if( byteKey.length == 65 ) return true
+        else return false
+    }
+
+    static encryptBuffer( pubKey, plainData ) {
+        var byteKey
+
+        if( typeof pubKey == "string" ) {
+            byteKey = conv.base642buf(pubKey)
+        }else {
+            byteKey = pubKey
+        }
+
+        return this._encryptData(byteKey, plainData)
+    }
+
+    static encryptBase64( pubKey, plainData) {
+        var byteKey
+
+        if( typeof pubKey == "string" ) {
+            byteKey = conv.base642buf(pubKey)
+        }else {
+            byteKey = pubKey
+        }
+
+        return conv.buf2base64( this._encryptData(byteKey, plainData) )
+    }
+
+    // encrypt with public key. returns buffer
+    _encryptData( pubKey, plainData ) {
+        const tmpKey = new Keypair()
+        const R = tmpKey.getPublicKeyBuffer()
+        const sharedSecret = tmpKey.curve.computeSecret(pubKey)
+        const sha256HashedSecret = crypto.createHash('sha256').update(Buffer.concat([sharedSecret], sharedSecret.length)).digest();
+        const encrypionKey = sha256HashedSecret.slice(0, sha256HashedSecret.length/2)
+        const macKey = sha256HashedSecret.slice(sha256HashedSecret.length/2, sha256HashedSecret.length)
+        let cipher = crypto.createCipheriv('aes-128-cbc', encrypionKey, _default_iv);
+        const lPart = cipher.update(plainData)
+        const rPart = cipher.final()
+        const cipherText = Buffer.concat([lPart, rPart])
+        const tag = crypto.createHmac('sha256', macKey).update(Buffer.concat([cipherText], cipherText.length)).digest()
+        return Buffer.concat([R, cipherText, tag]);
+    }
+}
+
+module.exports = { Keypair, KeyHelper }
