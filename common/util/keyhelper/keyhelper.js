@@ -138,7 +138,7 @@ class KeyHelper {
     }
 
     // encrypt with public key. returns buffer
-    _encryptData( pubKey, plainData ) {
+    static _encryptData( pubKey, plainData ) {
         const tmpKey = new Keypair()
         const R = tmpKey.getPublicKeyBuffer()
         const sharedSecret = tmpKey.curve.computeSecret(pubKey)
