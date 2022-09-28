@@ -1,3 +1,5 @@
+// Symmetric Key Helper
+
 const crypto = require('crypto');
 
 const DEFAULT_ALGORITHM = 'aes-256-cbc'
