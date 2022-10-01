@@ -5,7 +5,7 @@
  var express             = require('express');
  var bodyParser          = require('body-parser');
  var Orchestrator        = express();
-
+ var { WSServerManager }= require('./manager/websock/wsmgr')
  
  //var conn = new WebSocket('wss://192.168.219.107:22')
  /*
@@ -31,7 +31,8 @@ Orchestrator.listen(9999, function() {
 });
 
 // WebSocket Server
-startWSServer()
+//startWSServer()
+WSServerManager.getInstance().start()
 
 setInterval(() => {
     // app is running
