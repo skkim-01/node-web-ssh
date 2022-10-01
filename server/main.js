@@ -39,8 +39,11 @@ setInterval(() => {
 }, 1000);
 
 // end of process
-const gracfulCleanJob = () => new Promise((resolve, reject) => {
-    setTimeout(() => {resolve()}, 100);
+const gracfulCleanJob =  () => new Promise((resolve, reject) => {
+    WSServerManager.getInstance().fin().then( () => {
+        resolve()
+    })
+    //setTimeout(() => {resolve()}, 100);
     // TODO: Close code
 });
 

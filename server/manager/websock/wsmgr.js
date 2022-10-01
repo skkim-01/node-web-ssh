@@ -2,6 +2,7 @@ const webSockServer = require('ws').Server
 const { Keypair, KeyHelper } = require('../../../common/util/keyhelper/keyhelper')
 const { MSGHelper } = require('../../../common/msg/msg')
 const { Logger } = require('../../../common/log')
+const { SSHClient } = require('../../objects/sshclient/v1/sshclient')
 
 class WSServerManager {
     static _Instance = null;
@@ -16,15 +17,16 @@ class WSServerManager {
     bStart = false
     webSockServerListener = null
     
-    fin() {
-        this.webSockServerListener.clients.forEach(function each(client) {
-            if (client !== ws ) {
-              client.close()
-            }
-        });
-
-        this.webSockServerListener = null      
-        this.bStart = false
+    async fin() {
+        return new Promise( (resolve, reject) => {
+            this.webSockServerListener.clients.forEach(function each(client) {
+                client.close()
+            })
+            this.bStart = false
+            this.webSockServerListener.close()
+            resolve()
+        })
+        
     }
 
     async start( port = 9998 ) {
@@ -38,12 +40,12 @@ class WSServerManager {
 
         // listen-accept client
         this.webSockServerListener.on('connection', function(webSocket) {
-            // create key
-
+            
             var serverKey = new Keypair()
             var clientPubkey = '';
+            var sshClient = new SSHClient()
 
-            webSocket.on('message', function (byteBuffer) {
+            webSocket.on('message', async function (byteBuffer) {                
                 var jsonMessage = JSON.parse(byteBuffer)
                 var response = '';
 
@@ -52,29 +54,40 @@ class WSServerManager {
                         clientPubkey = jsonMessage["body"]
                         response = MSGHelper.buildResponse("KEYEX", true, serverKey.getPublicKeyBase64())
                         webSocket.send(response)
+                        Logger.dbg('KEYEX')
                         Logger.dbg('serverKey:', serverKey.getPublicKeyBase64())
                         Logger.dbg('clientKey:', clientPubkey)
                         break
 
                     case "CONN":
-                        console.log("CONN", jsonMessage)
+                        Logger.dbg('CONN')
                         var options = JSON.parse(serverKey.decryptString(jsonMessage['body']))
-                        console.log(options)
-                        //Logger.dbg(options)
-                        response = MSGHelper.buildResponse('CONN', true)
-                        webSocket.send(response)
-                        //sshconn.connect(rawJson['body'])
-                        //ws.send(_retv(true, "success"))
+                        console.log(options)                        
+                        var connectResult = await sshClient.connect(options)
+                        console.log(connectResult)
+                        response = MSGHelper.buildResponse('CONN', connectResult)
+                        webSocket.send(response)                        
                         break
 
                     case "SHELL":
-                        console.log("SHELL", jsonMessage)                        
+                        Logger.dbg('SHELL')
+                        console.log('#jsonMessage#', jsonMessage)                        
+                        var command = serverKey.decryptString(jsonMessage['body'])
+                        console.log('#command#', command)
+                        var consoleResult = await sshClient.exec(command)
+                        console.log('#consoleResult#', consoleResult)
+                        webSocket.send(
+                            MSGHelper.buildSecureResponse('SHELL', true, consoleResult, clientPubkey)
+                        )                        
                         break
+
                     default:
                         console.log("ERROR", jsonMessage)
-                }       
-
-                webSocket.send(response)
+                        webSocket.send(
+                            MSGHelper.buildResponse('ERROR', false, 'invalid command')
+                        )
+                        break
+                }
             })
 
             webSocket.on('close', () => {
