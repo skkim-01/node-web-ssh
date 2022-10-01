@@ -4,7 +4,7 @@ const { EventEmitter } = require('events')
 class WSClient {
     clientSocket = null
     isConnected = false
-    eventEmitter = new EventEmitter()    
+    eventEmitter = new EventEmitter()
 
     _onReceivecallback( messageEvent ) {
         return messageEvent.data
