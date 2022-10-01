@@ -15,6 +15,10 @@ class conv {
     static hex2buf(strBase64) {
         return Buffer.from(strBase64, 'hex')
     }
+
+    static buf2utf8(byteData) {
+        return Buffer.from(byteData).toString('utf-8')
+    }
 }
 
 module.exports = { conv }

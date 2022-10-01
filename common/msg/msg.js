@@ -25,7 +25,7 @@ class MSGHelper {
         })
     }
 
-    static builSecureRequest( cmd, body, pubkey ) 
+    static buildSecureRequest( cmd, body, pubkey ) 
     {
         return JSON.stringify({
             cmd: cmd,
