@@ -1,13 +1,18 @@
-import logo from './logo.svg';
-import { useState } from 'react'
 import './App.css';
+import { useState } from 'react'
+import { WSClient } from "./objects/wsclient"
 
-import { w3cwebsocket as W3CWebSocket } from "websocket";
-const client = new W3CWebSocket('ws://localhost:9998');
+// TODO: How to import outside of root file?
+const { MSGHelper } = require('./common/msg/msg')
+const { Keypair } = require('./common/util/keyhelper/keyhelper')
 
 function App() {
   const [textOutput, setTextOutput] = useState("");
   const [textValue, setTextValue] = useState("");
+  const [clientKeypair] = useState(new Keypair())
+  //const [serverPubkey, setServerPubkey] = useState('');
+  const [clientSocket] = useState(new WSClient())
+
   const handleSetValue = (e) => {
     setTextValue(e.target.value);
   };
@@ -22,25 +27,10 @@ function App() {
     setTextOutput(e.target.value)
   }
 
-
-  client.onopen = () => {
-    console.log('WebSocket Client Connected');
-  };
-  client.onmessage = (message) => {
-    console.log(message.data);
-    setTextOutput(message.data)
-  };
-  client.onerror = () => {
-    console.log('Connection Error');
-  };
-  client.onclose = () => {
-    console.log('socket closed');
-  }
-
   return (
     <div className="App">
       <header className="App-header">
-        <button onClick={onClickConnect}>test_open</button>
+        <button onClick={ () => onClickConnect(clientKeypair.getPublicKeyBase64(), clientSocket)}>test_open</button>
         <button onClick={onClickDisconnect}>test_close</button>
         <p> INPUT </p>
         <input
@@ -62,28 +52,23 @@ function App() {
 
 function onClickDisconnect() {
   console.log("onClose")
-  client.close();
+  // client.close();
 }
 
-function onClickConnect() {
+async function onClickConnect(base64key, clientSocket) {
   console.log("192.168.219.107:22")
+  console.log(base64key)
 
-  // TODO: check connection state
-  // if ( client.readyState != 0 /* CONNECTING */) {
-  //   client.OPEN()
-  // }
+  await clientSocket.connect('ws://localhost:9998')
+  console.log('connected')
+  var retv = await clientSocket.send(MSGHelper.buildRequest("KEYEX", base64key))
+  console.log(retv)
 
-  client.send( _build("CONN", {
-    "host" : "192.168.219.107",
-    "port" : 22,
-    "user" : "test",
-    "password" : "1"
-  }) )
+  return
 }
 
 function _sendSSH( shCmd ) {
   console.log("sendSSH") 
-  client.send( _build( "SHELL", shCmd ) )
 }
 
 function _build( msg, param ) {
