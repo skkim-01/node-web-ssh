@@ -1,5 +1,5 @@
 import './App.css';
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { WSClient } from "./objects/wsclient"
 
 // TODO: How to import outside of root file?
@@ -20,6 +20,12 @@ function App() {
   const [clientKeypair] = useState(new Keypair())
   const [serverPubkey, setServerPubkey] = useState('');
   const [clientSocket] = useState(new WSClient())
+
+  const textArea = useRef();
+  useEffect(() => {
+    const area = textArea.current;
+    area.scrollTop = area.scrollHeight;
+  });
 
   const handleSetValue = (e) => {
     setTextValue(e.target.value);
@@ -99,8 +105,13 @@ function App() {
         />
         <p> OUTPUT </p>
         <textarea
+          cols="100"
+          rows="30"
+          resize="none"
           value={textOutput}
+          readOnly={true}
           onChange={handleSetOutput}
+          ref={textArea}          
         ></textarea>
       </header>
     </div>
