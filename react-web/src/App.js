@@ -19,15 +19,20 @@ function App() {
   const [textValue, setTextValue] = useState("");
   const [clientKeypair] = useState(new Keypair())
   const [serverPubkey, setServerPubkey] = useState('');
-  const [clientSocket, setClientSocket] = useState(new WSClient())
+  const [clientSocket] = useState(new WSClient())
 
   const handleSetValue = (e) => {
     setTextValue(e.target.value);
   };
   const handleOnKeyPress = (e) => {
-    // TODO: CTRL+C
+    // TODO: filter command
     if (e.key === 'Enter') {
-      _sendSSH(textValue)
+      sendShellCommand(textValue).then( (result) => {        
+        var message = clientKeypair.decryptString(JSON.parse(result)['body'])
+        console.log(message)
+        var newText = textOutput + '\n' + message
+        setTextOutput(newText)        
+      })      
       setTextValue('')
     }
   }
@@ -70,6 +75,16 @@ function App() {
     clientSocket.close()    
   }
 
+  const sendShellCommand = async (shCmd) => {
+    return await clientSocket.send(
+      MSGHelper.buildSecureRequest(
+        "SHELL",
+        shCmd,
+        serverPubkey
+      )
+    )    
+  }
+
   return (
     <div className="App">
       <header className="App-header">
@@ -80,28 +95,16 @@ function App() {
           type="text"
           value={textValue}
           onChange={handleSetValue}
-          onKeyPress={handleOnKeyPress}
+          onKeyPress={ handleOnKeyPress }
         />
         <p> OUTPUT </p>
         <textarea
           value={textOutput}
-          onChange={(e) => handleSetOutput(e)}
+          onChange={handleSetOutput}
         ></textarea>
       </header>
     </div>
   );
 }
-
-function _sendSSH( shCmd ) {
-  console.log("sendSSH") 
-}
-
-function _build( msg, param ) {
-  return JSON.stringify({
-    "cmd" : msg,
-    "body" : param
-  })
-}
-
 
 export default App;

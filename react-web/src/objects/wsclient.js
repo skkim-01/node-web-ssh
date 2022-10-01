@@ -26,16 +26,15 @@ class WSClient {
                 console.log('#INFO\tWSClient.Connect().onopen:\tWebSocket Client Connected')
                 resolve()
             };
-            this.clientSocket.onmessage = (messageEvent) => {
-                console.log('#INFO\tWSClient.Connect().onmessage:\tWebSocket Client Connected')
+            this.clientSocket.onmessage = (messageEvent) => {                
                 this.eventEmitter.emit('message', messageEvent)
             };
             this.clientSocket.onerror = () => {
-                console.log('#INFO\tWSClient.Connect().onerror:\tWebSocket Client Connected')
+                console.log('#INFO\tWSClient.Connect().onerror:')
                 // TODO:
             };
             this.clientSocket.onclose = () => {
-                console.log('#INFO\tWSClient.Connect().onclose:\tWebSocket Client Connected')
+                console.log('#INFO\tWSClient.Connect().onclose:')
                 // TODO:
             }
         })
