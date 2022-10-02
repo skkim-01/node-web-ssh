@@ -1,7 +1,6 @@
 const webSockServer = require('ws').Server
-const { Keypair, KeyHelper } = require('../../../common/util/keyhelper/keyhelper')
-const { MSGHelper } = require('../../../common/msg/msg')
-const { Logger } = require('../../../common/log')
+const { MSGHelper } = require('../../common/msg/msg')
+const { Keypair, KeyHelper } = require('../../common/util/keyhelper/keyhelper')
 const { SSHClient } = require('../../objects/sshclient/v1/sshclient')
 
 class WSServerManager {
@@ -54,23 +53,20 @@ class WSServerManager {
                         clientPubkey = jsonMessage["body"]
                         response = MSGHelper.buildResponse("KEYEX", true, serverKey.getPublicKeyBase64())
                         webSocket.send(response)
-                        Logger.dbg('KEYEX')
-                        Logger.dbg('serverKey:', serverKey.getPublicKeyBase64())
-                        Logger.dbg('clientKey:', clientPubkey)
+                        console.log('KEYEX')
+                        console.log('serverKey:', serverKey.getPublicKeyBase64())
+                        console.log('clientKey:', clientPubkey)
                         break
 
                     case "CONN":
-                        Logger.dbg('CONN')
+                        console.log('CONN')
                         var options = JSON.parse(serverKey.decryptString(jsonMessage['body']))
-                        console.log(options)                        
                         var connectResult = await sshClient.connect(options)
-                        console.log(connectResult)
                         response = MSGHelper.buildResponse('CONN', connectResult)
                         webSocket.send(response)                        
                         break
 
                     case "SHELL":
-                        Logger.dbg('SHELL')
                         console.log('#jsonMessage#', jsonMessage)                        
                         var command = serverKey.decryptString(jsonMessage['body'])
                         console.log('#command#', command)
@@ -91,7 +87,7 @@ class WSServerManager {
             })
 
             webSocket.on('close', () => {
-                Logger.dbg(clientPubkey, "is closed")
+                console.log(clientPubkey, "is closed")
             })
         })
     }

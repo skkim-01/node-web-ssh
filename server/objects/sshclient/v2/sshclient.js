@@ -1,6 +1,6 @@
 const { Client }    = require('ssh2');
 const { EventEmitter } = require('events')
-const { conv } = require('../../../common/util/conv')
+const { conv } = require('../../common/util/conv')
 
 class SSHClient {
     // TODO: is it need?
