@@ -5,7 +5,6 @@ import { WSClient } from "./objects/wsclient"
 // TODO: How to import outside of root file?
 const { MSGHelper } = require('./common/msg/msg')
 const { Keypair } = require('./common/util/keyhelper/keyhelper')
-const { Logger } = require('./common/log')
 
 const default_option = {
   host: '192.168.219.107',
@@ -47,7 +46,7 @@ function App() {
   }
 
   const onConnect = async () => {
-    Logger.dbg('onConnect:start')
+    console.log('#INFO\tconConnect:start')
 
     // Connect Socket
     await clientSocket.connect('ws://localhost:9998')
@@ -63,8 +62,8 @@ function App() {
     if ( jsonRetv['result'] ) {
       setServerPubkey(jsonRetv['body'])      
     }
-    Logger.dbg('onConnect:KEYEX:serverkey', serverPubkey)
-    Logger.dbg('onConnect:KEYEX:clientkey', clientKeypair.getPublicKeyBase64())    
+    console.log('#INFO\tonConnect:KEYEX:serverkey', serverPubkey)
+    console.log('#INFO\tonConnect:KEYEX:clientkey', clientKeypair.getPublicKeyBase64())    
 
     // Request open ssh connection
     retv = await clientSocket.send(
@@ -74,7 +73,7 @@ function App() {
         serverPubkey
       )
     )
-    Logger.dbg('onConnect:CONN', retv)    
+    console.log('onConnect:CONN', retv)
   }
 
   const onDisconnect = () => {
