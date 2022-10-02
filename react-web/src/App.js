@@ -58,11 +58,12 @@ function App() {
         clientKeypair.getPublicKeyBase64()
       )
     )
+    // TODO: how to waiting setServerPubkey is finished..?
     var jsonRetv = JSON.parse(retv)
     if ( jsonRetv['result'] ) {
       setServerPubkey(jsonRetv['body'])      
     }
-    console.log('#INFO\tonConnect:KEYEX:serverkey', serverPubkey)
+    console.log('#INFO\tonConnect:KEYEX:serverkey', jsonRetv['body'])
     console.log('#INFO\tonConnect:KEYEX:clientkey', clientKeypair.getPublicKeyBase64())    
 
     // Request open ssh connection
@@ -70,7 +71,7 @@ function App() {
       MSGHelper.buildSecureRequest(
         'CONN',
         JSON.stringify(default_option),
-        serverPubkey
+        jsonRetv['body']
       )
     )
     console.log('onConnect:CONN', retv)
