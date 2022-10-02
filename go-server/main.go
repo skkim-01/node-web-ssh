@@ -16,6 +16,6 @@ func main() {
 	// websocket manager
 	websock.GetInstance().Start()
 
-	fmt.Println("#INFO\tServer is start with port :9999")
+	fmt.Println("#INFO\tMAIN\tHttp server is started with port :9999")
 	http.ListenAndServe(":9999", nil)
 }
