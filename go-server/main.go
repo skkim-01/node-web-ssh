@@ -9,7 +9,7 @@ import (
 
 	//"github.com/skkim-01/node-web-ssh/go-server/websock"
 
-	
+	"time"
 	"log"	
 	"os"
 	"golang.org/x/crypto/ssh"
@@ -19,25 +19,34 @@ import (
 
 func main() {
 	// test mine
-	testmine()	
+	//testmine()
+
+	client := sshclients.New()
+	client.Connect("")
+
+	// wait for connection
+	time.Sleep(time.Second * 2)
+
+	result := client.Exec("whoami")
+	fmt.Println(result)
+
+	// result = client.Exec("pwd")
+	// fmt.Println(result)
+
+	// result = client.Exec("ls -al")
+	// fmt.Println(result)
+
 
 	//testssh()
 
 	// revert
 	// http.HandleFunc("/v1/stat", v1.Stat)
 
-	// // websocket manager
+	// websocket manager
 	// websock.GetInstance().Start()
 
 	// fmt.Println("#INFO\tMAIN\tHttp server is started with port :9999")
 	// http.ListenAndServe(":9999", nil)
-}
-
-func testmine() {
-
-	client := sshclients.NewSSHClient()
-	err := client.Connect("test")
-	fmt.Println(err)
 }
 
 // TODO: handle signal
