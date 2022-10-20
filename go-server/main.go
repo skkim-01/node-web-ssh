@@ -18,24 +18,6 @@ import (
 )
 
 func main() {
-	// test mine
-	//testmine()
-
-	client := sshclients.New()
-	client.Connect("")
-
-	// wait for connection
-	time.Sleep(time.Second * 2)
-
-	result := client.Exec("whoami")
-	fmt.Println(result)
-
-	// result = client.Exec("pwd")
-	// fmt.Println(result)
-
-	// result = client.Exec("ls -al")
-	// fmt.Println(result)
-
 
 	//testssh()
 
@@ -47,6 +29,78 @@ func main() {
 
 	// fmt.Println("#INFO\tMAIN\tHttp server is started with port :9999")
 	// http.ListenAndServe(":9999", nil)
+
+	objfnc()
+}
+
+func objfnc() {
+	c := sshclients.NewSSHClient()
+
+	c.Close()
+
+	greetings, err := c.Conn("")
+	if err != nil {
+		fmt.Println("#ERROR\tsshclient.connect\t", err)
+		return 
+	}
+	fmt.Println(greetings)
+
+	msg, err := c.MSG("pwd")
+	if err != nil {
+		fmt.Println("#ERROR\tsshclient.msg\t", err)
+		return 
+	}
+	fmt.Println(msg)
+
+	msg, err = c.MSG("ls -al")
+	if err != nil {
+		fmt.Println("#ERROR\tsshclient.msg\t", err)
+		return 
+	}
+	fmt.Println(msg)
+
+	msg, err = c.MSG(`cat test.sh`)
+	if err != nil {
+		fmt.Println("#ERROR\tsshclient.msg\t", err)
+		return 
+	}
+	fmt.Println(msg)
+
+	msg, err = c.MSG("export")
+	if err != nil {
+		fmt.Println("#ERROR\tsshclient.msg\t", err)
+		return 
+	}
+	fmt.Println(msg)
+
+	msg, err = c.MSG("tail -f /var/log/syslog")
+	if err != nil {
+		fmt.Println("#ERROR\tsshclient.msg\t", err)
+		return 
+	}
+	fmt.Println(msg)
+
+	c.Close()
+}
+
+func eventfunc() {
+	client := sshclients.New()
+	client.Connect("")
+
+	// wait for connection
+	time.Sleep(time.Second * 2)
+
+	result := client.Exec("whoami")
+	fmt.Println(result)
+
+	result = client.Exec("pwd")
+	fmt.Println(result)
+
+	result = client.Exec("ls -al")
+	fmt.Println(result)
+
+	result = client.Exec("whoami")
+	fmt.Println(result)
 }
 
 // TODO: handle signal
