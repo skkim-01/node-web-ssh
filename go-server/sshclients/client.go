@@ -1,33 +1,43 @@
 // https://pkg.go.dev/golang.org/x/crypto/ssh#Client
 // https://pkg.go.dev/golang.org/x/crypto/ssh#Session
 
-// TODO:
-// client.HandleChannelOpen
-// session.CombinedOutput
+// TODO: vi...?
 
 package sshclients
-
 
 import (
 	"io"
 	"fmt"
+	"strings"
+	"sync"
 
 	"golang.org/x/crypto/ssh"
+
+	Events "github.com/skkim-01/wait-object/events"
 )
 
-type SSHCli struct {
+// MSG Mutex
+var lockMutex sync.Mutex
+
+// waitgroup for initialize
+var wg sync.WaitGroup
+
+type SSHClient struct {
 	connection		*ssh.Client
 	session			*ssh.Session
 	streamIn		io.WriteCloser
 	streamOut 		io.Reader
 	streamErr		io.Reader
+	hEvent			chan interface{}
 }
 
-func NewSSHClient() *SSHCli {
-	return &SSHCli {}
+func NewSSHClient() *SSHClient {
+	return &SSHClient {
+		hEvent: Events.CreateSingleEvent(),
+	}
 }
 
-func (c *SSHCli) Close() {
+func (c *SSHClient) Close() {
 	if c.streamIn != nil {
 		defer c.streamIn.Close()
 	}
@@ -45,8 +55,11 @@ func (c *SSHCli) Close() {
 	}	
 }
 
-func (c *SSHCli) Conn(conninfo string) (string, error) {
+func (c *SSHClient) Conn(conninfo string) (string, error) {
 	var err error
+	
+	// TODO: parse conninfo
+	// TODO: other authentications
 	config := &ssh.ClientConfig{
 		User: "test",
 		Auth: []ssh.AuthMethod{
@@ -79,33 +92,115 @@ func (c *SSHCli) Conn(conninfo string) (string, error) {
 		return "", err
 	}
 
+	// message pump threads. wait initialized
+	wg.Add(2)
+	go c.__stdout_pump(c.hEvent)
+	go c.__stderr_pump(c.hEvent)
+	wg.Wait()
+
+	// start shell
 	err = c.session.Shell()
 	if err != nil {
 		fmt.Println("#ERR\tsession.Shell():", err)
 		return "", err
 	}
 
-	buffer := make([]byte, 65535)
-	_, err = c.streamOut.Read(buffer)
-	if err != nil {
-		fmt.Println("io.ReadAll:", err)
+	// out greeting message
+	retv := c._msgAggregator()
+	return retv, nil
+}
+
+// Exec: Execute shell command
+func (c *SSHClient) Exec(msg string) (string, error) {
+	fmt.Println("test@test >", msg)
+
+	isDeny, isRead := c._msgFilter(msg)
+	if isDeny {
+		return fmt.Sprintf("ERROR: [%v] command is currently not supported", msg), nil
+	}
+
+	_, err := fmt.Fprintf(c.streamIn, "%s\n", msg)
+	if err != nil { 
 		return "", err
+	}
+
+	if !isRead {
+		return "", nil
 	}
 	
-	return string(buffer), nil
+	retv := c._msgAggregator()
+	return retv, nil
 }
 
-func (c *SSHCli) MSG(msg string) (string, error) {
-	fmt.Println("test@test >", msg)
-	buffer := make([]byte, 65535)
-	_, err := fmt.Fprintf(c.streamIn, "%s\n", msg)
-	if err != nil {
-		return "", err
+
+/*
+ *		private functions
+ */
+
+// _msgFilter : check command: deny or no wait
+func (c *SSHClient) _msgFilter(msg string) (isDeny bool, isRead bool) {
+	slicedString := strings.Split(msg, " ")
+
+	switch slicedString[0] {
+	case "cd":
+		return false, false
+
+	case "vi":
+		return true, false
+
+	default:
+		return false, true
 	}
-	_, err = c.streamOut.Read(buffer)
-	if err != nil {
-		return "", err	
-	}
-	return string(buffer), nil
 }
 
+// _msgAggregator: message aggregator (stdout | stderr)
+func (c *SSHClient) _msgAggregator() string {
+	// TODO: is it needed?
+	lockMutex.Lock()
+	retv := Events.WaitForSingleObject(c.hEvent, 0)	
+	lockMutex.Unlock()
+
+	return fmt.Sprintf("%v", retv)
+}
+
+// __stderr_pump: message pump thread. it will be closed when c.streamErr is closed
+func (c *SSHClient) __stderr_pump(hEvent chan interface{}) {
+	defer func() {
+		recover() 
+	}()
+
+	var err error
+	wg.Done()
+
+	for {
+		buffer := make([]byte, 65535)
+		_, err = c.streamErr.Read(buffer)
+		if err != nil {
+			Events.SetEvent(hEvent, err.Error())
+			continue
+		}
+		Events.SetEvent(hEvent, string(buffer))
+		continue
+	}
+}
+
+// __stdout_pump: message pump thread. it will be closed when c.streamOut is closed
+func (c *SSHClient) __stdout_pump(hEvent chan interface{}) {
+	defer func() {
+		recover() 
+	}()
+
+	var err error	
+	wg.Done()
+
+	for {
+		buffer := make([]byte, 65535)
+		_, err = c.streamOut.Read(buffer)
+		if err != nil {
+			Events.SetEvent(hEvent, err.Error())
+			continue
+		}
+		Events.SetEvent(hEvent, string(buffer))
+		continue
+	}
+}
