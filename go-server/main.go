@@ -3,26 +3,26 @@ package main
 import (
 	"fmt"
 
-	//"net/http"
+	"net/http"
 
-	//"github.com/skkim-01/node-web-ssh/go-server/controller/v1"
+	"github.com/skkim-01/node-web-ssh/go-server/controller/v1"
 
-	//"github.com/skkim-01/node-web-ssh/go-server/websock"
+	"github.com/skkim-01/node-web-ssh/go-server/websock"
 
 	"github.com/skkim-01/node-web-ssh/go-server/sshclients"
 )
 
 func main() {
-	// revert
-	// http.HandleFunc("/v1/stat", v1.Stat)
+	http.HandleFunc("/v1/stat", v1.Stat)
 
-	// websocket manager
-	// websock.GetInstance().Start()
+	//websocket manager
+	websock.GetInstance().Start()
 
-	// fmt.Println("#INFO\tMAIN\tHttp server is started with port :9999")
-	// http.ListenAndServe(":9999", nil)
+	fmt.Println("#INFO\tMAIN\tHttp server is started with port :9999")
+	http.ListenAndServe(":9999", nil)
 
-	testssh()
+	// TODO: test ssh client code. will be remove
+	//testssh()
 }
 
 func testssh() {
