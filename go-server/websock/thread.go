@@ -65,7 +65,7 @@ func _wshandler(w http.ResponseWriter, r *http.Request) {
 		if err := conn.WriteMessage(messageType, []byte(strResponse)); err != nil {
 			log.Printf("conn.WriteMessage: %v", err)
 			return
-		}		
+		}
 	}
 }
 
@@ -86,7 +86,7 @@ func _handleMessage(
 	// same as 'server/manager/websock/wsmgr.js | async start() | message event'
 	switch jsonRequest.Find("cmd") {
 	case "KEYEX":
-		fmt.Println("#INFO\tTHRAD:WS\tKEYEX.Request")
+		fmt.Println("#INFO\tTHREAD:WS\tKEYEX.Request")
 		fmt.Println(jsonRequest.PPrint())
 
 		// 1. set client key
@@ -98,18 +98,18 @@ func _handleMessage(
 		jsonResponse.Insert("", "body", publicKey.ToBase64())
 		responseMsg = jsonResponse.Print()
 
-		fmt.Println("#INFO\tTHRAD:WS\tKEYEX.Response")
+		fmt.Println("#INFO\tTHREAD:WS\tKEYEX.Response")
 		fmt.Println(jsonResponse.PPrint())
 		break
 
 	case "CONN":
-		fmt.Println("#INFO\tTHRAD:WS\tCONN.Request")
+		fmt.Println("#INFO\tTHREAD:WS\tCONN.Request")
 		fmt.Println(jsonRequest.PPrint())
 		
 		byteConnInfo, _ := ecies.DecryptBase64(privateKey, fmt.Sprintf("%v", jsonRequest.Find("body")))
 		connInfo := conv.Byte2string(byteConnInfo)
 		//mapConninfo := fmt.Sprintf("%v", jsonRequest.Find("body"))
-		fmt.Println("#DEBUG\tTHRAD:WS\tconnInfo", connInfo)
+		fmt.Println("#DEBUG\tTHREAD:WS\tconnInfo", connInfo)
 		// TODO: ssh connect
 
 		// TODO: ssh connect result / message
@@ -118,16 +118,16 @@ func _handleMessage(
 		jsonResponse.Insert("", "body", "success to connect")
 		responseMsg = jsonResponse.Print()
 
-		fmt.Println("#INFO\tTHRAD:WS\tCONN.Response")
+		fmt.Println("#INFO\tTHREAD:WS\tCONN.Response")
 		fmt.Println(jsonResponse.PPrint())
 		break
 
 	case "SHELL":
-		fmt.Println("#INFO\tTHRAD:WS\tSHELL.Request")
+		fmt.Println("#INFO\tTHREAD:WS\tSHELL.Request")
 		fmt.Println(jsonRequest.PPrint())
 
 		shellCommand := fmt.Sprintf("%v", jsonRequest.Find("body"))
-		fmt.Println("#DEBUG\tTHRAD:WS\tshellCommand", shellCommand)
+		fmt.Println("#DEBUG\tTHREAD:WS\tshellCommand", shellCommand)
 		// TODO: ssh execute
 
 		// TODO: ssh execute result
@@ -137,7 +137,7 @@ func _handleMessage(
 		jsonResponse.Insert("", "body", exResult)
 		responseMsg = jsonResponse.Print()
 
-		fmt.Println("#INFO\tTHRAD:WS\tSHELL.Response")
+		fmt.Println("#INFO\tTHREAD:WS\tSHELL.Response")
 		fmt.Println(jsonResponse.PPrint())
 		break
 
