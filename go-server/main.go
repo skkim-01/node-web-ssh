@@ -5,7 +5,7 @@ import (
 
 	"net/http"
 
-	"github.com/skkim-01/node-web-ssh/go-server/controller/v1"
+	v1 "github.com/skkim-01/node-web-ssh/go-server/controller/v1"
 
 	"github.com/skkim-01/node-web-ssh/go-server/websock"
 
@@ -35,21 +35,22 @@ func testssh() {
 	greetings, err := c.Conn("")
 	if err != nil {
 		fmt.Println("#ERROR\tsshclient.connect\t", err)
-		return 
+		return
 	}
 	fmt.Println(greetings)
 
 	msg, err = c.Exec("pwd")
 	if err != nil {
 		fmt.Println("#ERROR\tsshclient.msg\t", err)
-		return 
+		return
 	}
 	fmt.Println(msg)
 
-	msg, err = c.Exec("whoami")
+	// TODO: Check invalid directory
+	msg, err = c.Exec("cd asd")
 	if err != nil {
 		fmt.Println("#ERROR\tsshclient.msg\t", err)
-		return 
+		return
 	}
 	fmt.Println(msg)
 
@@ -57,7 +58,7 @@ func testssh() {
 	msg, err = c.Exec("ls -al")
 	if err != nil {
 		fmt.Println("#ERROR\tsshclient.msg\t", err)
-		return 
+		return
 	}
 	fmt.Println(msg)
 
@@ -65,7 +66,7 @@ func testssh() {
 	msg, err = c.Exec("cd /var/log")
 	if err != nil {
 		fmt.Println("#ERROR\tsshclient.msg\t", err)
-		return 
+		return
 	}
 	fmt.Println(msg)
 
@@ -73,31 +74,31 @@ func testssh() {
 	msg, err = c.Exec("ls -al")
 	if err != nil {
 		fmt.Println("#ERROR\tsshclient.msg\t", err)
-		return 
+		return
 	}
 	fmt.Println(msg)
 
 	// TODO: buffer overflow
-	msg, err = c.Exec("cat syslog")
-	if err != nil {
-		fmt.Println("#ERROR\tsshclient.msg\t", err)
-		return 
-	}
-	fmt.Println(msg)
+	// msg, err = c.Exec("cat syslog")
+	// if err != nil {
+	// 	fmt.Println("#ERROR\tsshclient.msg\t", err)
+	// 	return
+	// }
+	// fmt.Println(msg)
 
 	// test error message
 	msg, err = c.Exec("asd")
 	if err != nil {
 		fmt.Println("#ERROR\tsshclient.msg\t", err)
-		return 
+		return
 	}
-	fmt.Println(msg)	
+	fmt.Println(msg)
 
 	// deny message
 	msg, err = c.Exec("vi")
 	if err != nil {
 		fmt.Println("#ERROR\tsshclient.msg\t", err)
-		return 
+		return
 	}
 	fmt.Println(msg)
 
@@ -105,8 +106,7 @@ func testssh() {
 }
 
 // TODO: handle signal
-// https://pkg.go.dev/golang.org/x/crypto/ssh#Signal	
-
+// https://pkg.go.dev/golang.org/x/crypto/ssh#Signal
 
 // hostkey callback issue: ssh: required host key was nil
 // https://stackoverflow.com/questions/44269142/golang-ssh-getting-must-specify-hoskeycallback-error-despite-setting-it-to-n

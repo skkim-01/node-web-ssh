@@ -6,8 +6,8 @@
 package sshclients
 
 import (
-	"io"
 	"fmt"
+	"io"
 	"strings"
 	"sync"
 
@@ -23,21 +23,22 @@ var lockMutex sync.Mutex
 var wg sync.WaitGroup
 
 type SSHClient struct {
-	connection		*ssh.Client
-	session			*ssh.Session
-	streamIn		io.WriteCloser
-	streamOut 		io.Reader
-	streamErr		io.Reader
-	hEvent			chan interface{}
+	connection *ssh.Client
+	session    *ssh.Session
+	streamIn   io.WriteCloser
+	streamOut  io.Reader
+	streamErr  io.Reader
+	hEvent     chan interface{}
 }
 
 func NewSSHClient() *SSHClient {
-	return &SSHClient {
+	return &SSHClient{
 		hEvent: Events.CreateSingleEvent(),
 	}
 }
 
 func (c *SSHClient) Close() {
+	// TODO: Close & Reopen Event
 	if c.streamIn != nil {
 		defer c.streamIn.Close()
 	}
@@ -52,12 +53,12 @@ func (c *SSHClient) Close() {
 	}
 	if c.connection != nil {
 		defer c.connection.Close()
-	}	
+	}
 }
 
 func (c *SSHClient) Conn(conninfo string) (string, error) {
 	var err error
-	
+
 	// TODO: parse conninfo
 	// TODO: other authentications
 	config := &ssh.ClientConfig{
@@ -67,7 +68,8 @@ func (c *SSHClient) Conn(conninfo string) (string, error) {
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
-	c.connection, err = ssh.Dial("tcp", "192.168.219.107:22", config)
+	//c.connection, err = ssh.Dial("tcp", "192.168.219.107:22", config)
+	c.connection, err = ssh.Dial("tcp", "172.20.151.2:22", config)
 	if err != nil {
 		return "", err
 	}
@@ -120,18 +122,17 @@ func (c *SSHClient) Exec(msg string) (string, error) {
 	}
 
 	_, err := fmt.Fprintf(c.streamIn, "%s\n", msg)
-	if err != nil { 
+	if err != nil {
 		return "", err
 	}
 
 	if !isRead {
 		return "", nil
 	}
-	
+
 	retv := c._msgAggregator()
 	return retv, nil
 }
-
 
 /*
  *		private functions
@@ -157,7 +158,7 @@ func (c *SSHClient) _msgFilter(msg string) (isDeny bool, isRead bool) {
 func (c *SSHClient) _msgAggregator() string {
 	// TODO: is it needed?
 	lockMutex.Lock()
-	retv := Events.WaitForSingleObject(c.hEvent, 0)	
+	retv := Events.WaitForSingleObject(c.hEvent, 0)
 	lockMutex.Unlock()
 
 	return fmt.Sprintf("%v", retv)
@@ -166,20 +167,21 @@ func (c *SSHClient) _msgAggregator() string {
 // __stderr_pump: message pump thread. it will be closed when c.streamErr is closed
 func (c *SSHClient) __stderr_pump(hEvent chan interface{}) {
 	defer func() {
-		recover() 
+		recover()
 	}()
 
 	var err error
+	var nBytesRead int
 	wg.Done()
 
 	for {
 		buffer := make([]byte, 65535)
-		_, err = c.streamErr.Read(buffer)
+		nBytesRead, err = c.streamErr.Read(buffer)
 		if err != nil {
 			Events.SetEvent(hEvent, err.Error())
 			continue
 		}
-		Events.SetEvent(hEvent, string(buffer))
+		Events.SetEvent(hEvent, string(buffer[:nBytesRead]))
 		continue
 	}
 }
@@ -187,20 +189,21 @@ func (c *SSHClient) __stderr_pump(hEvent chan interface{}) {
 // __stdout_pump: message pump thread. it will be closed when c.streamOut is closed
 func (c *SSHClient) __stdout_pump(hEvent chan interface{}) {
 	defer func() {
-		recover() 
+		recover()
 	}()
 
-	var err error	
+	var err error
+	var nBytesRead int
 	wg.Done()
 
 	for {
 		buffer := make([]byte, 65535)
-		_, err = c.streamOut.Read(buffer)
+		nBytesRead, err = c.streamOut.Read(buffer)
 		if err != nil {
 			Events.SetEvent(hEvent, err.Error())
 			continue
 		}
-		Events.SetEvent(hEvent, string(buffer))
+		Events.SetEvent(hEvent, string(buffer[:nBytesRead]))
 		continue
 	}
 }

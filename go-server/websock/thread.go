@@ -1,16 +1,16 @@
 package websock
 
-import(
+import (
 	"fmt"
-	"net/http"
 	"log"
+	"net/http"
 
 	"github.com/gorilla/websocket"
 	JsonMapper "github.com/skkim-01/json-mapper/src"
 
-	"github.com/skkim-01/node-web-ssh/go-server/utils/ecies"
-	"github.com/skkim-01/node-web-ssh/go-server/utils/conv"
 	"github.com/skkim-01/node-web-ssh/go-server/sshclients"
+	"github.com/skkim-01/node-web-ssh/go-server/utils/conv"
+	"github.com/skkim-01/node-web-ssh/go-server/utils/ecies"
 )
 
 func _start_wsserver_listener_thread() {
@@ -20,11 +20,10 @@ func _start_wsserver_listener_thread() {
 	// TODO: kill gracefully
 	fmt.Println("#INFO\tTHREAD:WS\tWSServer is started with port :9998")
 	fmt.Println()
-	if err := http.ListenAndServe(":9998", nil) ; err != nil {
+	if err := http.ListenAndServe(":9998", nil); err != nil {
 		log.Fatal(err)
-	}	
+	}
 }
-
 
 // github.com/gorilla/websocket
 var upgrader = websocket.Upgrader{
@@ -86,7 +85,6 @@ func _handleMessage(
 	}
 	responseMsg := ""
 	jsonResponse, _ := JsonMapper.NewBytes([]byte("{}"))
-	
 
 	// same as 'server/manager/websock/wsmgr.js | async start() | message event'
 	switch jsonRequest.Find("cmd") {
@@ -110,7 +108,7 @@ func _handleMessage(
 	case "CONN":
 		fmt.Println("#INFO\tTHREAD:WS\tCONN.Request")
 		fmt.Println(jsonRequest.PPrint())
-		
+
 		byteConnInfo, _ := ecies.DecryptBase64(privateKey, fmt.Sprintf("%v", jsonRequest.Find("body")))
 		connInfo := conv.Byte2string(byteConnInfo)
 		//mapConninfo := fmt.Sprintf("%v", jsonRequest.Find("body"))
@@ -120,13 +118,18 @@ func _handleMessage(
 		if err != nil {
 			jsonResponse.Insert("", "cmd", "CONN")
 			jsonResponse.Insert("", "result", false)
-			jsonResponse.Insert("", "body", err.Error())
+			exResult, _ := ecies.EncryptWithBase64(
+				ecies.FromBase64ToPublicKey(*clientPublicKey), []byte(err.Error()))
+			jsonResponse.Insert("", "body", exResult)
+
 		} else {
 			jsonResponse.Insert("", "cmd", "CONN")
 			jsonResponse.Insert("", "result", true)
-			jsonResponse.Insert("", "body", retv)
+			exResult, _ := ecies.EncryptWithBase64(
+				ecies.FromBase64ToPublicKey(*clientPublicKey), []byte(retv))
+			jsonResponse.Insert("", "body", exResult)
 		}
-		
+
 		responseMsg = jsonResponse.Print()
 		fmt.Println("#INFO\tTHREAD:WS\tCONN.Response")
 		fmt.Println(jsonResponse.PPrint())
@@ -136,23 +139,26 @@ func _handleMessage(
 		fmt.Println("#INFO\tTHREAD:WS\tSHELL.Request")
 		fmt.Println(jsonRequest.PPrint())
 
-		shellCommand := fmt.Sprintf("%v", jsonRequest.Find("body"))
-		fmt.Println("#DEBUG\tTHREAD:WS\tshellCommand", shellCommand)
+		//shellCommand := fmt.Sprintf("%v", jsonRequest.Find("body"))
+		byteShellCommand, _ := ecies.DecryptBase64(privateKey, fmt.Sprintf("%v", jsonRequest.Find("body")))
+		fmt.Println("#DEBUG\tTHREAD:WS\tshellCommand", string(byteShellCommand))
 
-		retv, err := sshClient.Exec(shellCommand)
+		retv, err := sshClient.Exec(string(byteShellCommand))
 		if err != nil {
 			jsonResponse.Insert("", "cmd", "SHELL")
 			jsonResponse.Insert("", "result", false)
-			exResult, _ := ecies.EncryptWithBase64(ecies.FromBase64ToPublicKey(*clientPublicKey), []byte(err.Error()))
+			exResult, _ := ecies.EncryptWithBase64(
+				ecies.FromBase64ToPublicKey(*clientPublicKey), []byte(err.Error()))
 			jsonResponse.Insert("", "body", exResult)
-			
+
 		} else {
 			jsonResponse.Insert("", "cmd", "CONN")
 			jsonResponse.Insert("", "result", true)
-			exResult, _ := ecies.EncryptWithBase64(ecies.FromBase64ToPublicKey(*clientPublicKey), []byte(retv))
+			exResult, _ := ecies.EncryptWithBase64(
+				ecies.FromBase64ToPublicKey(*clientPublicKey), []byte(retv))
 			jsonResponse.Insert("", "body", exResult)
 		}
-		// TODO: ssh execute result		
+		// TODO: ssh execute result
 		responseMsg = jsonResponse.Print()
 
 		fmt.Println("#INFO\tTHREAD:WS\tSHELL.Response")
