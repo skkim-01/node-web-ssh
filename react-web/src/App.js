@@ -74,7 +74,13 @@ function App() {
         jsonRetv['body']
       )
     )
-    console.log('onConnect:CONN', retv)
+    //console.log('onConnect:CONN', retv)
+    var jsonMsg = MSGHelper.parseSecureMessage(
+      retv,
+      clientKeypair
+    )
+    
+    setTextOutput(jsonMsg['body'])
   }
 
   const onDisconnect = () => {
@@ -82,13 +88,20 @@ function App() {
   }
 
   const sendShellCommand = async (shCmd) => {
-    return await clientSocket.send(
+    var retv =  await clientSocket.send(
       MSGHelper.buildSecureRequest(
         "SHELL",
         shCmd,
         serverPubkey
       )
-    )    
+    )
+
+    var jsonMsg = MSGHelper.parseSecureMessage(
+      retv,
+      clientKeypair
+    )
+
+    setTextOutput(jsonMsg['body'])
   }
 
   return (
